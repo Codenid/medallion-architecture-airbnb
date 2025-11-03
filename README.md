@@ -1,80 +1,88 @@
-# Informe Final – Arquitectura Medallón Airbnb (Bronze, Silver y Gold)
+# Informe Final – Arquitectura Medallón Airbnb (Bronze · Silver · Gold)
 
-**Curso:** Base de Datos
-**Tema:** Diseño de la arquitectura Medallón (Bronze – Silver – Gold)
-**Dataset:** Airbnb Listings & Reviews
-**Integrantes:** *(colocar nombres del equipo)*
+**Universidad:** UTEC – Universidad de Ingeniería y Tecnología  
+**Maestría:** Ciencia de Datos e Inteligencia Artificial  
+**Curso:** Base de Datos  
+**Integrantes:** Winston Flores  
+**Fecha de entrega:** 06/11/2025
 
 ---
 
 ## Índice
 
-1. [Objetivos del trabajo](#objetivos-del-trabajo)
-2. [Introducción](#introducción)
-3. [Capa Bronze – Datos crudos](#capa-bronze--datos-crudos)
-4. [Capa Silver – Datos estructurados](#capa-silver--datos-estructurados)
-5. [Capa Gold – Modelos analíticos (BI y ML)](#capa-gold--modelos-analíticos-bi-y-ml)
-6. [Diagrama general de arquitectura](#diagrama-general-de-arquitectura)
-7. [Decisiones clave de diseño](#decisiones-clave-de-diseño)
-8. [Conclusiones](#conclusiones)
-9. [Anexos – Scripts clave](#anexos--scripts-clave)
+1. [Resumen ejecutivo](#resumen-ejecutivo)
+2. [Objetivos del trabajo](#objetivos-del-trabajo)
+3. [Alcance y dataset](#alcance-y-dataset)
+4. [Arquitectura Medallón](#arquitectura-medallón)
+   1. [Capa Bronze – Datos crudos](#capa-bronze--datos-crudos)
+   2. [Capa Silver – Datos estructurados](#capa-silver--datos-estructurados)
+   3. [Capa Gold – Modelos analíticos (BI y ML)](#capa-gold--modelos-analíticos-bi-y-ml)
+5. [Trazabilidad y estructura del proyecto](#trazabilidad-y-estructura-del-proyecto)
+6. [Decisiones de diseño](#decisiones-de-diseño)
+7. [Calidad de datos y validaciones](#calidad-de-datos-y-validaciones)
+8. [Reproducibilidad y desempeño](#reproducibilidad-y-desempeño)
+9. [Resultados y conclusiones](#resultados-y-conclusiones)
+
+---
+
+## Resumen ejecutivo
+
+Se implementó una arquitectura **Medallón (Bronze → Silver → Gold)** para transformar el dataset público **Airbnb Listings & Reviews** (formato JSON anidado) en **modelos tabulares** confiables, listos para **análisis de negocio (BI)** y **modelado predictivo (ML)**.  
+La propuesta garantiza **trazabilidad**, **calidad de datos**, y **reproducibilidad**, habilitando una vista de **desempeño de listings** para Power BI y un dataset **curado de features** para un modelo de predicción de **precio por noche**.
 
 ---
 
 ## Objetivos del trabajo
 
-1. Comprender los principios y el propósito de cada capa de la arquitectura Medallón.
-2. Analizar un esquema de datos JSON complejo, anidado y semi-estructurado.
-3. Diseñar un modelo de datos tabular (capa Silver) limpio, validado y fuente única de la verdad.
-4. Proponer modelos agregados (capa Gold) optimizados para BI y ML.
-5. Justificar decisiones de diseño (normalización vs. desnormalización, aplanamiento y limpieza).
-6. Colaborar en equipo para lograr consensos técnicos.
+1. Diseñar una arquitectura Medallón que preserve el crudo, normalice entidades y exponga modelos analíticos.  
+2. Analizar y aplanar **JSON complejos**, separando entidades funcionales y relaciones.  
+3. Establecer **tablas Silver** como **fuente única de la verdad** (consistentes, tipadas y validables).  
+4. Publicar **artefactos Gold** diferenciados para **BI** y **ML**.  
+5. Documentar las **decisiones de diseño** y las **reglas de limpieza** de manera clara y académica.
 
 ---
 
-## Introducción
+## Alcance y dataset
 
-Este informe documenta la implementación de una **arquitectura Medallón (Bronze–Silver–Gold)** sobre el dataset público **Airbnb Listings & Reviews**.
-El objetivo fue transformar datos **JSON anidados** en modelos tabulares confiables para **análisis de negocio (BI)** y **modelado predictivo (ML)**.
-
-**Trazabilidad (notebooks):**
-`Airbnb_01_bronze_reviews.ipynb`,
-`Airbnb_02_silver_reviews_metadata.ipynb`, 
-`Airbnb_02_silver_reviews_data.ipynb`, 
-`Airbnb_03_gold_reviews_metadata.ipynb`, 
-`Airbnb_03_gold_reviews_data.ipynb`.
+- **Fuente:** Airbnb *Listings & Reviews* (archivo JSON con objetos anidados y arreglos).  
+- **Alcance:** Ingesta cruda (Bronze), normalización por entidades (Silver) y productos analíticos (Gold: BI y ML).  
+- **Suposiciones:** Se emplean claves de negocio `bk_*` y claves sustitutas `*_sk` para estabilidad relacional.
 
 ---
 
-## Capa Bronze – Datos crudos
+## Arquitectura Medallón
 
-**Descripción.** La capa Bronze conserva el **JSON original** tal cual llega del origen, con fines de trazabilidad, auditoría y reprocesos.
+### Capa Bronze – Datos crudos
 
-**Tabla propuesta:** `bronze_reviews_raw`
+**Propósito.** Conservar el **JSON original**, sin modificaciones, con fines de **auditoría, trazabilidad y reproceso**.
+
+**Tabla:** `bronze_reviews_raw`  
 **Campos:** `id`, `json_raw`, `fecha_carga`, `nombre_archivo_origen`, `id_proceso`.
 
-**Valor funcional.** Garantiza una copia exacta del dato crudo para validar, volver a procesar y comparar versiones.
+**Beneficio funcional.** Permite reproducir el pipeline, validar versiones y comparar resultados con el crudo original.
 
 ---
 
-## Capa Silver – Datos estructurados
+### Capa Silver – Datos estructurados
 
-### Entidades identificadas
+Se definieron **seis** entidades funcionales y sus relaciones:
 
-Se definieron **seis** tablas funcionales:
+- **HOSTS** – datos de anfitriones.  
+- **LISTINGS** – entidad central del alojamiento.  
+- **REVIEWS** – reseñas de huéspedes.  
+- **LISTING_AMENITIES** – relación N–a–N entre listings y amenities.  
+- **ADDRESS** – ubicación (geografía y coordenadas).  
+- **AMENITIES** – catálogo normalizado de amenidades.
 
-* **HOSTS** – datos de anfitriones.
-* **LISTINGS** – información del alojamiento (tabla central).
-* **REVIEWS** – reseñas individuales.
-* **LISTING_AMENITIES** – relación alojamiento–amenidad.
-* **ADDRESS** – información geográfica y coordenadas del listing.
-* **AMENITIES** – catálogo de amenidades estandarizadas.
+**Reglas de transformación (síntesis):**  
+1) Conversión de `$numberDecimal`/`$numberInt` a tipos numéricos nativos.  
+2) Conversión de `$date` a `TIMESTAMP`.  
+3) Aplanamiento de objetos anidados (host, address, review_scores).  
+4) Normalización de arreglos (`reviews`, `amenities`) a tablas dedicadas.  
+5) Limpieza de textos (saltos de línea, caracteres no imprimibles).  
+6) Validaciones de rango y consistencia (precios > 0, ratings válidos).
 
-> Implementación en: 
-`Airbnb_02_silver_reviews_metadata.ipynb` `Airbnb_02_silver_reviews_data.ipynb`.
-
-### Diagrama ER
-
+**Diagrama ER (visión funcional):**
 ```mermaid
 erDiagram
   HOSTS ||--o{ LISTINGS : "tiene"
@@ -82,130 +90,24 @@ erDiagram
   LISTINGS ||--|| ADDRESS : "ubicación"
   LISTINGS ||--o{ LISTING_AMENITIES : "ofrece"
   AMENITIES ||--o{ LISTING_AMENITIES : "catálogo"
-
-  HOSTS {
-    string   host_id PK
-    string   host_name
-    string   host_location
-    string   host_about
-    string   host_response_time
-    integer  host_response_rate
-    boolean  host_is_superhost
-    boolean  host_has_profile_pic
-    boolean  host_identity_verified
-    integer  host_listings_count
-    integer  host_total_listings_count
-  }
-
-  LISTINGS {
-    string   listing_id PK
-    string   name
-    string   summary
-    string   description
-    string   property_type
-    string   room_type
-    string   bed_type
-    integer  accommodates
-    integer  bedrooms
-    integer  beds
-    decimal  bathrooms
-    integer  minimum_nights
-    integer  maximum_nights
-    string   cancellation_policy
-    decimal  price
-    decimal  security_deposit
-    decimal  cleaning_fee
-    decimal  extra_people
-    integer  guests_included
-    integer  availability_30
-    integer  availability_60
-    integer  availability_90
-    integer  availability_365
-    integer  review_scores_accuracy
-    integer  review_scores_cleanliness
-    integer  review_scores_checkin
-    integer  review_scores_communication
-    integer  review_scores_location
-    integer  review_scores_value
-    integer  review_scores_rating
-    integer  number_of_reviews
-    timestamp first_review
-    timestamp last_review
-    string   country
-    string   country_code
-    string   market
-    decimal  latitude
-    decimal  longitude
-    string   host_id FK
-  }
-
-  ADDRESS {
-    string   listing_id PK, FK
-    string   street
-    string   suburb
-    string   government_area
-    string   market
-    string   country
-    string   country_code
-    decimal  latitude
-    decimal  longitude
-    boolean  is_location_exact
-  }
-
-  REVIEWS {
-    string    review_id PK
-    string    listing_id FK
-    string    reviewer_id
-    string    reviewer_name
-    timestamp review_date
-    string    comments
-  }
-
-  AMENITIES {
-    string amenity PK
-    string amenity_description
-  }
-
-  LISTING_AMENITIES {
-    string listing_id FK
-    string amenity   FK
-  }
 ```
 
-> Nota: En la implementación real se usan claves `bk_*` (negocio) y `*_sk` (surrogate). El diagrama usa nombres funcionales para facilitar lectura. La relación **LISTINGS–ADDRESS** es 1:1.
-
-### Reglas de limpieza y transformación
-
-1. Conversión de `$numberDecimal`/`$numberInt` a tipos numéricos estándar.
-2. Conversión de `$date` a `TIMESTAMP`.
-3. Aplanamiento de objetos (host, address, review_scores).
-4. Normalización de arreglos (`reviews`, `amenities`) en tablas dedicadas.
-5. Limpieza de textos (saltos de línea, caracteres especiales).
-6. Validación de rangos (precios > 0, ratings válidos).
-
-### Objetivo funcional por tabla
-
-* **HOSTS:** reputación y respuesta del anfitrión.
-* **LISTINGS:** entidad central con atributos y métricas del alojamiento.
-* **ADDRESS:** geoposición y contexto territorial para análisis por ubicación.
-* **REVIEWS:** base temporal de satisfacción del huésped.
-* **AMENITIES:** catálogo estandarizado para clasificar servicios.
-* **LISTING_AMENITIES:** puente N–a–N entre listings y amenities; base de `num_amenities`.
+> Nota: en la implementación real se emplean claves `bk_*` (de negocio) y `*_sk` (surrogate). La relación **LISTINGS–ADDRESS** es 1:1.
 
 ---
 
-## Capa Gold – Modelos analíticos (BI y ML)
+### Capa Gold – Modelos analíticos (BI y ML)
 
-### 1) Power BI – Fuente unificada
+#### 1) Vista para BI – Rendimiento de listings
 
-**Objetivo:** exponer una vista limpia y estable para tableros.
-**Nombre final (tu versión):** `airbnb.gold.feature_bi_listing_performance`
+**Objetivo.** Exponer una **vista estable** y limpia como fuente para Power BI, con métricas y dimensiones esenciales.  
+**Dependencias:** `silver.listings`, `silver.hosts`, `silver.reviews`, `silver.listing_amenities`.
 
 ```sql
 -- ==============================================
 -- GOLD / BI: Vista base para Power BI
 -- Nombre: airbnb.gold.feature_bi_listing_performance
--- Objetivo: Fuente única para tableros (Import o DirectQuery)
+-- Objetivo: Fuente única para tableros
 -- Dependencias: silver.listings, silver.hosts, silver.reviews, silver.listing_amenities
 -- ==============================================
 
@@ -215,14 +117,14 @@ CREATE OR REPLACE VIEW airbnb.gold.feature_bi_listing_performance AS
 WITH amen AS (
   SELECT
     bk_listing_id,
-    COUNT(*) AS num_amenities
+    COUNT(1) AS num_amenities
   FROM airbnb.silver.listing_amenities
   GROUP BY bk_listing_id
 ),
 rev AS (
   SELECT
     bk_listing_id,
-    COUNT(*)               AS total_reviews,
+    COUNT(1)               AS total_reviews,
     MAX(review_date)       AS last_review_date
   FROM airbnb.silver.reviews
   GROUP BY bk_listing_id
@@ -255,22 +157,29 @@ WHERE l.price IS NOT NULL
   AND TRY_CAST(l.price AS DECIMAL(10,2)) > 0;
 ```
 
+**Justificación del diseño.**  
+- Se **coalesce** el conteo de amenidades y reseñas para no perder filas sin actividad.  
+- Se limita a **precios válidos** para evitar outliers de nulos/cero.  
+- Se ofrecen **dimensiones mínimas** (país, tipo de propiedad, tipo de habitación) útiles para segmentar en BI.
+
 ---
 
-### 2) ML – Predicción de rating
+#### 2) Dataset para ML – Predicción de precio
 
-**Tabla:** `airbnb.gold.gold_ml_rating_features`
-**Objetivo:** predecir `review_scores_rating` con variables de capacidad, amenities, precio y atributos del host.
+**Objetivo.** Construir un dataset **curado** con **target** y **features** relevantes para entrenar modelos de **predicción de precio por noche**.
 
 ```sql
 -- =========================================================
--- GOLD: ML - gold_ml_rating_features
--- Objetivo: predecir review_scores_rating (target_rating)
+-- GOLD: ML - feature_ml_price
+-- Objetivo: predecir price (target_price)
+-- Fuentes: airbnb.silver.listings, airbnb.silver.hosts, airbnb.silver.listing_amenities
 -- =========================================================
 
+-- 1) Asegurar esquema Gold
 CREATE SCHEMA IF NOT EXISTS airbnb.gold;
 
-CREATE OR REPLACE TABLE airbnb.gold.gold_ml_rating_features AS
+-- 2) Construcción de features + target
+CREATE OR REPLACE TABLE airbnb.gold.feature_ml_price AS
 WITH amen AS (
   SELECT
     bk_listing_id,
@@ -279,61 +188,104 @@ WITH amen AS (
   GROUP BY bk_listing_id
 )
 SELECT
-  l.bk_listing_id                                  AS listing_id,
-  CAST(l.review_scores_rating AS INT)              AS target_rating,
-  TRY_CAST(l.price AS DECIMAL(10,2))               AS price,
-  TRY_CAST(l.accommodates AS INT)                  AS accommodates,
-  TRY_CAST(l.bedrooms AS INT)                      AS bedrooms,
-  TRY_CAST(l.beds AS INT)                          AS beds,
-  TRY_CAST(l.bathrooms AS DECIMAL(3,1))            AS bathrooms,
-  TRY_CAST(l.number_of_reviews AS INT)             AS number_of_reviews,
-  COALESCE(a.num_amenities, 0)                     AS num_amenities,
+  /* Identificador estable por clave de negocio */
+  l.bk_listing_id                                   AS listing_id,
+
+  -- ===== TARGET =====
+  TRY_CAST(l.price AS DECIMAL(10,2))                AS target_price,
+
+  -- ===== FEATURES NUMÉRICAS =====
+  TRY_CAST(l.accommodates AS INT)                   AS accommodates,
+  TRY_CAST(l.bedrooms AS INT)                       AS bedrooms,
+  TRY_CAST(l.beds AS INT)                           AS beds,
+  TRY_CAST(l.bathrooms AS DECIMAL(3,1))             AS bathrooms,
+  TRY_CAST(l.minimum_nights AS INT)                 AS minimum_nights,
+  TRY_CAST(l.maximum_nights AS INT)                 AS maximum_nights,
+  TRY_CAST(l.number_of_reviews AS INT)              AS number_of_reviews,
+  TRY_CAST(l.review_scores_rating AS DECIMAL(5,2))  AS review_scores_rating,
+  COALESCE(a.num_amenities, 0)                      AS num_amenities,
+
+  -- ===== FEATURES CATEGÓRICAS / BOOLEANAS =====
   CASE
     WHEN CAST(h.host_is_superhost AS STRING) IN ('true','True','1')  THEN TRUE
     WHEN CAST(h.host_is_superhost AS STRING) IN ('false','False','0') THEN FALSE
     ELSE TRY_CAST(h.host_is_superhost AS BOOLEAN)
-  END                                              AS host_is_superhost,
+  END                                               AS host_is_superhost,
+
   l.property_type,
   l.room_type,
   l.country
+
 FROM airbnb.silver.listings l
 LEFT JOIN airbnb.silver.hosts h
   ON h.host_sk = l.host_sk
 LEFT JOIN amen a
   ON a.bk_listing_id = l.bk_listing_id
-WHERE l.review_scores_rating IS NOT NULL
-  AND l.price IS NOT NULL
+
+-- 3) Filtros mínimos de calidad
+WHERE l.price IS NOT NULL
   AND TRY_CAST(l.price AS DECIMAL(10,2)) > 0;
 ```
 
+**Criterios de inclusión.**  
+- Se **normalizan** tipos y se **coalesce** el número de amenidades.  
+- Se tipifica `host_is_superhost` de manera robusta frente a diferentes codificaciones.  
+- Se **excluyen** registros sin precio válido para mejorar la señal del modelo.
+
+> **Nota:** El entrenamiento y registro del modelo (e.g., `model_airbnb_price`) se realiza en un notebook aparte, usando este dataset Gold como fuente única.
+
 ---
 
-## Diagrama general de arquitectura
+## Estructura del proyecto
 
-```mermaid
-  graph TD
-  A[JSON - listingsAndReviews] -->|Ingesta| B[Bronze - Datos crudos]
-  B -->|Limpieza y aplanamiento| C[Silver - Tablas normalizadas]
-  C -->|Agregaciones y features| D1[Gold BI - Rendimiento de listings]
-  C -->|Transformaciones ML| D2[Gold ML - Variables predictoras]
+```
+/ (raíz del repositorio)
+├─ data/                      # fuentes crudas / intermedias (si aplica)
+├─ notebooks/                 # cuadernos por fase del pipeline
+│  ├─ Airbnb_01_bronze_reviews.ipynb
+│  ├─ Airbnb_02_silver_reviews_metadata.ipynb
+│  ├─ Airbnb_02_silver_reviews_data.ipynb
+│  ├─ Airbnb_03_gold_reviews_metadata.ipynb
+│  ├─ Airbnb_03_gold_reviews_data.ipynb
+│  ├─ Airbnb_04_gold_feature_bi_listing_performance.ipynb
+│  └─ Airbnb_04_gold_feature_ml_price.ipynb
+├─ images/                    # evidencias, diagramas, resultados
+└─ README.md                  # informe
 ```
 
 ---
 
-## Decisiones clave de diseño
+## Decisiones de diseño
 
-1. **Normalización en Silver** para separar entidades (incluyendo **ADDRESS** y **AMENITIES**) y evitar redundancia.
-2. **Relación N–a–N** para amenities mediante **LISTING_AMENITIES**.
-3. **Desnormalización focalizada en Gold** (vistas y features por caso de uso).
-4. **Conservación del crudo en Bronze** para auditoría y reprocesos.
-5. **Claves de negocio y surrogate** para estabilidad y performance entre capas.
+1. **Normalización en Silver.** Se separan entidades para evitar redundancia y facilitar reglas por dominio (HOSTS, LISTINGS, REVIEWS, ADDRESS, AMENITIES).  
+2. **Relación N–a–N de amenities.** Se modela mediante `LISTING_AMENITIES` para permitir métricas como `num_amenities`.  
+3. **Desnormalización selectiva en Gold.** Productos enfocados en consumo: **vista BI** y **tabla de features para ML**.  
+4. **Claves** `bk_*` y `*_sk` aseguran **estabilidad** y **performance** entre capas.  
+5. **Validaciones** tempranas para minimizar propagación de nulos, tipos erróneos y outliers obvios.
 
 ---
 
-## Conclusiones
+## Calidad de datos y validaciones
 
-La solución convierte datos JSON complejos en modelos tabulares confiables, listos para **BI** y **ML**.
-El diseño incorpora **ADDRESS** y **AMENITIES** como entidades dedicadas, mejora la trazabilidad y habilita métricas comparables por ubicación y oferta de servicios.
-Se cumplieron los objetivos académicos del curso con un **pipeline claro, reproducible y escalable**.
+- **Tipificación consistente** (numéricos, fechas, booleanos).  
+- **Rangos y reglas** (precio > 0, ratings 0–100).  
+- **Alineamiento geográfico** (coordenadas válidas).  
+- **Conteos controlados** (reviews y amenities).  
+- **Excepciones tratadas** (diferentes codificaciones de booleanos).
+
+---
+
+## Resultados y conclusiones
+
+- Se dispone de una **vista Gold para BI** con dimensiones y métricas esenciales, lista para **Power BI**.  
+- Se genera un **dataset Gold para ML** con target y features relevantes, evitando ruido por registros sin precio.  
+- La separación en capas mejora la **gobernanza**, el **control de calidad** y la **velocidad de análisis**.
+
+**Modelo:** `model_airbnb_price`
+**Objetivo:** Construir, entrenar y registrar un modelo de Machine Learning que prediga el precio por noche de alojamientos de Airbnb, utilizando las features derivadas en la capa Gold (feature_ml_price).
+
+
+[Airbnb_05_ml_price.ipynb](./notebooks/Airbnb_05_ml_price.ipynb)
+![Resultados de la predicción de precios](./images/Airbnb_05_ml_price.png)
 
 ---
