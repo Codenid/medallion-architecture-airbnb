@@ -3,8 +3,7 @@
 **Universidad:** UTEC – Universidad de Ingeniería y Tecnología  
 **Maestría:** Ciencia de Datos e Inteligencia Artificial  
 **Curso:** Base de Datos  
-**Integrantes:** Winston Flores  
-**Fecha de entrega:** 06/11/2025
+**Fecha de entrega:** 05/11/2025
 
 ---
 
@@ -286,6 +285,19 @@ WHERE l.price IS NOT NULL
 
 
 [Airbnb_05_ml_price.ipynb](./notebooks/Airbnb_05_ml_price.ipynb)
+[model_airbnb_price.pkl](./notebooks/model_airbnb_price.pkl)
 ![Resultados de la predicción de precios](./images/Airbnb_05_ml_price.png)
 
 ---
+
+## Autores
+
+| Nombre | Perfil |
+|--------|--------|
+| **Nicole Arenas Lazo** | [Narenas96](https://github.com/narenas96) |
+| **Edgard Inga** | [DragdeFroylan](https://github.com/DragdeFroylan) |
+| **Estuardo Oliver Campos** | [Estuardoo](https://github.com/estuardoo) |
+| **Gianmarco Mejía** | [gianmarcomejia96](https://github.com/gianmarcomejia96) |
+| **Diego Sanchez Salazar** | [Diego9828](https://github.com/Diego9828) |
+| **Piero Palacios Bernuy** | [Pipaber](https://github.com/pipaber) |
+| **Winston Flores** | [Codenid](https://github.com/Codenid) |
