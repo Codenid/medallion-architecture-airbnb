@@ -285,7 +285,7 @@ WHERE l.price IS NOT NULL
 
 
 [Airbnb_05_ml_price.ipynb](./notebooks/Airbnb_05_ml_price.ipynb)
-[model_airbnb_price.pkl](./notebooks/model_airbnb_price.pkl)
+[model_airbnb_price_v1.zip](./notebooks/model_airbnb_price_v1.zip)
 ![Resultados de la predicción de precios](./images/Airbnb_05_ml_price.png)
 
 ---
